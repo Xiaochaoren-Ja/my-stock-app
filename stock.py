@@ -8,264 +8,319 @@ from datetime import datetime
 # --- 1. 全局配置 & 页面美化 ---
 st.set_page_config(page_title="宝宝专用 | 顶级投研", layout="wide", page_icon="💖")
 
-# --- CSS 深度定制 (毛玻璃 + 霓虹风格) ---
+# --- CSS 深度定制 (大字体 + 优化表格) ---
 st.markdown("""
 <style>
-    /* 全局背景 */
+    /* 全局背景 - 深蓝极光色 */
     .stApp {
-        background: linear-gradient(to bottom right, #0f2027, #203a43, #2c5364);
+        background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
         color: white;
     }
     
-    /* 侧边栏美化 */
+    /* 表格字体放大，更清晰 */
+    div[data-testid="stDataFrame"] div {
+        font-size: 16px !important; 
+        font-family: 'Arial', sans-serif;
+    }
+    
+    /* 侧边栏半透明 */
     section[data-testid="stSidebar"] {
-        background-color: rgba(0, 0, 0, 0.4);
+        background-color: rgba(0, 0, 0, 0.2);
         backdrop-filter: blur(10px);
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
     }
     
-    /* 卡片容器样式 (Glassmorphism) */
-    .css-card {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 15px;
-        padding: 20px;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        margin-bottom: 20px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    
-    /* 指标数字颜色 */
+    /* 指标数字 */
     div[data-testid="stMetricValue"] {
         color: #00d2ff; /* 霓虹蓝 */
-        text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+        font-weight: bold;
     }
     
-    /* 按钮样式 */
+    /* 按钮美化 */
     .stButton>button {
-        background: linear-gradient(45deg, #FF512F, #DD2476);
-        color: white;
-        border-radius: 20px;
-        border: none;
-        padding: 10px 25px;
+        border-radius: 10px;
         font-weight: bold;
+        border: 1px solid #ffffff30;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 辅助计算函数 (RSI & 布林带) ---
-def calculate_indicators(df):
-    # RSI
+# --- 辅助函数 ---
+def get_data_safe(ticker):
+    """安全获取数据，防止报错"""
+    try:
+        s = yf.Ticker(ticker)
+        h = s.history(period="1y")
+        i = s.info
+        return s, h, i
+    except:
+        return None, pd.DataFrame(), {}
+
+def calculate_rsi(df, periods=14):
+    """计算RSI指标"""
+    if df.empty: return df
     delta = df['Close'].diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+    gain = (delta.where(delta > 0, 0)).rolling(window=periods).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=periods).mean()
     rs = gain / loss
     df['RSI'] = 100 - (100 / (1 + rs))
-    
-    # Bollinger Bands
-    df['SMA20'] = df['Close'].rolling(window=20).mean()
-    df['STD20'] = df['Close'].rolling(window=20).std()
-    df['Upper'] = df['SMA20'] + (df['STD20'] * 2)
-    df['Lower'] = df['SMA20'] - (df['STD20'] * 2)
     return df
 
-# --- 2. 侧边栏逻辑 ---
+# --- 2. 侧边栏 ---
 with st.sidebar:
     st.markdown("## 💖 宝宝专用投研终端")
-    st.caption("Made with love for professional trading")
     st.markdown("---")
     
     # 模式切换
-    mode = st.radio("功能模式", ["单股分析", "多股对比 (VS)"], index=0)
-    
+    mode = st.radio("功能模式", ["🔍 单股深度分析", "⚔️ 多股PK (最多4只)"])
     st.markdown("---")
     
-    if mode == "单股分析":
-        st.subheader("🔍 股票检索")
-        market_type = st.radio("市场", ["🇺🇸 美股", "🇨🇳 A股"], horizontal=True)
-        
-        if market_type == "🇺🇸 美股":
-            symbol_input = st.text_input("美股代码 (如 NVDA)", value="NVDA").upper()
-            final_ticker = symbol_input
+    # 只有单股模式才显示时间选择
+    if "单股" in mode:
+        period_map = {"1个月": "1mo", "3个月": "3mo", "6个月": "6mo", "1年": "1y", "3年": "3y"}
+        time_sel = st.selectbox("K线时间", list(period_map.keys()), index=3)
+        time_period = period_map[time_sel]
+
+# --- 3. 主程序逻辑 ---
+
+# ==========================================
+# 模式 A: 单股深度分析
+# ==========================================
+if "单股" in mode:
+    # --- 股票选择区 ---
+    with st.sidebar:
+        st.subheader("输入代码")
+        mkt = st.radio("市场", ["美股", "A股"], horizontal=True)
+        if mkt == "美股":
+            ticker = st.text_input("代码 (如 NVDA)", value="NVDA").upper()
         else:
-            code_input = st.text_input("A股代码 (如 600519)", value="600519")
-            exchange = st.selectbox("交易所", [".SS (上海)", ".SZ (深圳)"])
-            suffix = exchange.split(" ")[0]
-            final_ticker = code_input + suffix if code_input else ""
+            code = st.text_input("代码 (如 600519)", value="600519")
+            ex = st.selectbox("交易所", [".SS (上海)", ".SZ (深圳)"])
+            ticker = code + ex.split(" ")[0] if code else ""
+
+    if ticker:
+        stock, hist, info = get_data_safe(ticker)
+        
+        if hist.empty:
+            st.error(f"⚠️ 找不到代码 {ticker}，请检查拼写或网络。")
+            st.stop()
             
-    else: # 多股对比模式
-        st.subheader("⚔️ 多股大乱斗")
-        st.info("输入多个代码，用英文逗号分隔")
-        st.markdown("**示例:** `AAPL, MSFT, 600519.SS`")
-        multi_tickers = st.text_area("输入股票池", value="AAPL, TSLA, NVDA, AMD").upper()
+        hist = calculate_rsi(hist)
+
+        # --- 1. 核心行情 (Top) ---
+        st.title(f"{info.get('shortName', ticker)} ({ticker})")
         
-    st.markdown("---")
-    st.markdown("### 🛠 工具箱")
-    time_period = st.select_slider("时间范围", options=["1mo", "3mo", "6mo", "1y", "3y"], value="1y")
-
-# --- 3. 主页面逻辑 ---
-
-# >>>>>>>>> 模式 A: 单股深度分析 (实用功能增强版) <<<<<<<<<
-if mode == "单股分析" and final_ticker:
-    try:
-        with st.spinner(f"正在分析 {final_ticker} ..."):
-            stock = yf.Ticker(final_ticker)
-            hist = stock.history(period=time_period)
-            info = stock.info
-            
-            if hist.empty:
-                st.error("无法获取数据，请检查代码。")
-                st.stop()
-                
-            # 计算技术指标
-            hist = calculate_indicators(hist)
-
-        # 1. 头部核心卡片
-        st.markdown(f"## {info.get('shortName', final_ticker)} <span style='font-size:16px;color:#aaa'>{final_ticker}</span>", unsafe_allow_html=True)
+        # 价格与指标
+        curr = info.get('currentPrice') or hist['Close'].iloc[-1]
+        prev = info.get('previousClose') or hist['Close'].iloc[-2]
+        chg = curr - prev
+        pct = (chg/prev)*100
         
-        # 实时价格计算
-        curr_price = info.get('currentPrice') or hist['Close'].iloc[-1]
-        prev_close = info.get('previousClose') or hist['Close'].iloc[-2]
-        change = curr_price - prev_close
-        pct_change = (change / prev_close) * 100
-        
-        # 支撑压力位 (基于过去20天)
-        recent_high = hist['High'].tail(20).max()
-        recent_low = hist['Low'].tail(20).min()
+        # RSI 状态
+        rsi_val = hist['RSI'].iloc[-1]
+        rsi_state = "超买 (高风险)" if rsi_val > 70 else "超卖 (机会?)" if rsi_val < 30 else "正常"
 
-        # 展示 4 个核心数据
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("当前价格", f"{curr_price:,.2f}", f"{change:+.2f} ({pct_change:+.2f}%)")
-        c2.metric("RSI (强弱指标)", f"{hist['RSI'].iloc[-1]:.1f}", delta=None, help=">70超买(风险)，<30超卖(机会)")
-        c3.metric("短期压力位", f"{recent_high:,.2f}", help="过去20天最高价")
-        c4.metric("短期支撑位", f"{recent_low:,.2f}", help="过去20天最低价")
+        c1.metric("当前价格", f"{curr:,.2f}", f"{chg:+.2f} ({pct:+.2f}%)")
+        c2.metric("RSI 指标", f"{rsi_val:.1f}", rsi_state)
+        c3.metric("市盈率 (PE)", f"{info.get('trailingPE', 'N/A')}")
+        c4.metric("总市值", f"{info.get('marketCap', 0)/1e9:,.2f} B")
 
         st.markdown("---")
 
-        # 2. 专业图表区 (Tabs)
-        tab_main, tab_fin, tab_news = st.tabs(["📈 操盘大屏", "💰 财务透视", "📰 消息面"])
+        # --- 2. K线图 (Middle) ---
+        st.subheader("📈 价格走势")
+        fig = go.Figure(data=[go.Candlestick(x=hist.index,
+                        open=hist['Open'], high=hist['High'],
+                        low=hist['Low'], close=hist['Close'], name='K线')])
+        fig.update_layout(height=550, template="plotly_dark", xaxis_rangeslider_visible=False)
+        st.plotly_chart(fig, use_container_width=True)
 
-        with tab_main:
-            # 高级 K 线图 (含布林带 + 成交量)
-            fig = go.Figure()
-            
-            # 蜡烛图
-            fig.add_trace(go.Candlestick(x=hist.index,
-                            open=hist['Open'], high=hist['High'],
-                            low=hist['Low'], close=hist['Close'],
-                            name='K线'))
-            
-            # 布林带
-            fig.add_trace(go.Scatter(x=hist.index, y=hist['Upper'], line=dict(color='rgba(255, 255, 255, 0.3)', width=1), name='布林上轨', hoverinfo='skip'))
-            fig.add_trace(go.Scatter(x=hist.index, y=hist['Lower'], line=dict(color='rgba(255, 255, 255, 0.3)', width=1), name='布林下轨', fill='tonexty', fillcolor='rgba(255, 255, 255, 0.05)', hoverinfo='skip'))
-            fig.add_trace(go.Scatter(x=hist.index, y=hist['SMA20'], line=dict(color='#ff9f43', width=1.5), name='中轨 (20日线)'))
+        # --- 3. 底部功能区 (Tabs) ---
+        st.markdown("<br>", unsafe_allow_html=True)
+        tab_fin, tab_holder, tab_news = st.tabs(["💰 财务透视 (大表)", "🏦 股东与分红", "📰 智能舆情"])
 
-            fig.update_layout(height=550, template="plotly_dark", xaxis_rangeslider_visible=False, title="价格走势 + 布林通道")
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # 辅助信号提示
-            col_tip1, col_tip2 = st.columns(2)
-            with col_tip1:
-                st.info(f"📊 **波动区间**: 本周期最低 {hist['Low'].min():.2f} - 最高 {hist['High'].max():.2f}")
-            with col_tip2:
-                # RSI 简单解读
-                last_rsi = hist['RSI'].iloc[-1]
-                if last_rsi > 70:
-                    st.warning("⚠️ **RSI 警示**: 指标超买 (>70)，注意回调风险！")
-                elif last_rsi < 30:
-                    st.success("✅ **RSI 提示**: 指标超卖 (<30)，存在反弹可能。")
-                else:
-                    st.info(f"ℹ️ **RSI 状态**: 中性区间 ({last_rsi:.1f})，趋势跟随。")
-
-            # 数据下载
-            st.download_button("📥 下载该股票历史数据 (CSV)", hist.to_csv(), file_name=f"{final_ticker}_data.csv", mime='text/csv')
-
+        # >>> Tab 1: 财务透视 (已放大) <<<
         with tab_fin:
-            # 简化版财务
-            st.subheader("核心财务指标")
+            st.markdown("### 📊 核心财务报表")
             fin = stock.financials
+            bs = stock.balance_sheet
+            cf = stock.cashflow
+            
+            # 财务概览 (User 要求放在显眼位置)
             if not fin.empty:
-                st.dataframe(fin.style.background_gradient(cmap="Blues"), use_container_width=True)
+                st.info("💡 提示：这里展示的是年度合并报表，单位为原币种。")
+                
+                # 利润表
+                st.markdown("#### 1. 利润表 (Income Statement)")
+                # 选取最重要的几行
+                key_rows = ['Total Revenue', 'Net Income', 'Gross Profit', 'Operating Income', 'EBITDA']
+                existing_rows = [r for r in key_rows if r in fin.index]
+                # 如果有数据，显示
+                if existing_rows:
+                     st.dataframe(fin.loc[existing_rows].style.background_gradient(cmap="Blues").format("{:,.0f}"), use_container_width=True)
+                else:
+                    st.dataframe(fin.head(10), use_container_width=True)
+
+                st.markdown("---")
+                
+                # 资产负债表一角
+                st.markdown("#### 2. 资产状况 (Balance Sheet Snapshot)")
+                bs_rows = ['Total Assets', 'Total Liab', 'Total Stockholder Equity', 'Cash And Cash Equivalents']
+                existing_bs = [r for r in bs_rows if r in bs.index]
+                if existing_bs:
+                    st.dataframe(bs.loc[existing_bs].style.format("{:,.0f}"), use_container_width=True)
             else:
                 st.warning("暂无详细财务数据")
-                
+
+        # >>> Tab 2: 股东与分红 <<<
+        with tab_holder:
+            c_h1, c_h2 = st.columns(2)
+            with c_h1:
+                st.subheader("👥 机构/大股东持仓")
+                try:
+                    # 尝试获取大股东数据
+                    holders = stock.major_holders
+                    inst = stock.institutional_holders
+                    if inst is not None and not inst.empty:
+                        st.dataframe(inst, use_container_width=True)
+                    elif holders is not None:
+                        st.dataframe(holders, use_container_width=True)
+                    else:
+                        st.info("暂无持仓数据")
+                except:
+                    st.info("数据源暂未提供持仓信息")
+
+            with c_h2:
+                st.subheader("📅 分红与拆股")
+                divs = stock.dividends
+                if not divs.empty:
+                    st.bar_chart(divs.tail(10)) # 显示最近10次分红
+                    st.caption("最近10次分红记录")
+                else:
+                    st.info("近期无分红记录")
+
+        # >>> Tab 3: 智能舆情 (修复版) <<<
         with tab_news:
-            st.subheader("最新舆情")
-            for n in stock.news[:5]:
-                st.markdown(f"**[{n.get('title', '无标题')}]({n.get('link')})**")
-                st.caption(f"来源: {n.get('publisher')} | {datetime.fromtimestamp(n.get('providerPublishTime', 0)).strftime('%Y-%m-%d %H:%M')}")
-                st.markdown("---")
-
-    except Exception as e:
-        st.error(f"发生错误: {e}")
-
-# >>>>>>>>> 模式 B: 多股对比 (VS) - 收益率赛跑 <<<<<<<<<
-elif mode == "多股对比 (VS)" and multi_tickers:
-    try:
-        # 清洗输入的代码
-        tickers_list = [t.strip() for t in multi_tickers.split(",") if t.strip()]
-        
-        if len(tickers_list) > 0:
-            st.subheader("🏎️ 收益率赛跑 (标准化对比)")
+            st.subheader("📰 市场消息")
             
-            # 拉取数据
-            data_dict = {}
-            valid_tickers = []
+            # 1. 尝试获取 yfinance 新闻
+            news_list = stock.news
+            has_valid_news = False
             
-            with st.spinner("正在把所有股票拉上跑道..."):
-                for t in tickers_list:
-                    s = yf.Ticker(t)
-                    h = s.history(period=time_period)
-                    if not h.empty:
-                        # 计算累计涨幅 %
-                        h['Pct'] = (h['Close'] / h['Close'].iloc[0] - 1) * 100
-                        data_dict[t] = h['Pct']
-                        valid_tickers.append(t)
+            if news_list:
+                for n in news_list[:5]:
+                    # 严格清洗数据
+                    title = n.get('title')
+                    link = n.get('link')
+                    pub = n.get('publisher')
+                    # 过滤掉无标题或无链接的坏数据
+                    if title and link and title != "":
+                        has_valid_news = True
+                        with st.container():
+                            st.markdown(f"**🔗 [{title}]({link})**")
+                            st.caption(f"来源: {pub}")
+                            st.markdown("---")
             
-            if data_dict:
-                # 绘图
-                fig_race = go.Figure()
-                for vt in valid_tickers:
-                    # 随机颜色或不同颜色
-                    fig_race.add_trace(go.Scatter(x=data_dict[vt].index, y=data_dict[vt], mode='lines', name=vt))
-                
-                fig_race.update_layout(
-                    height=600, 
-                    template="plotly_dark", 
-                    yaxis_title="累计涨跌幅 (%)",
-                    hovermode="x unified",
-                    legend=dict(orientation="h", y=1.02, yanchor="bottom", x=0, xanchor="left")
-                )
-                st.plotly_chart(fig_race, use_container_width=True)
-                
-                # 最终排位表
-                st.markdown("### 🏆 当前排名 (累计涨跌)")
-                final_res = []
-                for vt in valid_tickers:
-                    final_val = data_dict[vt].iloc[-1]
-                    final_res.append({"代码": vt, "累计涨跌幅": final_val})
-                
-                df_res = pd.DataFrame(final_res).sort_values("累计涨跌幅", ascending=False)
-                
-                # 美化表格显示
-                st.dataframe(
-                    df_res.style.format({"累计涨跌幅": "{:.2f}%"})
-                    .background_gradient(cmap="RdYlGn", subset=["累计涨跌幅"]),
-                    use_container_width=True
-                )
-                
+            # 2. 如果没有有效新闻，提供备选方案
+            if not has_valid_news:
+                st.warning("⚠️ 数据源暂无最新新闻，或者数据格式异常。")
+            
+            # 3. 永远显示的“备用搜索按钮” (最实用)
+            st.markdown("#### 🌐 全网搜索该股票")
+            col_s1, col_s2 = st.columns(2)
+            # 生成 Google 和 必应 的搜索链接
+            q_ticker = ticker.replace(".SS", " stock").replace(".SZ", " stock")
+            if "SS" in ticker or "SZ" in ticker:
+                search_q = f"{ticker} 股票新闻"
             else:
-                st.warning("输入的代码均无效，请检查。如果是A股记得加 .SS 或 .SZ")
+                search_q = f"{ticker} stock news"
                 
-    except Exception as e:
-        st.error(f"对比出错: {e}")
+            with col_s1:
+                st.link_button("🔍 去 Google 财经搜索", f"https://www.google.com/search?q={search_q}&tbm=nws")
+            with col_s2:
+                st.link_button("🔍 去 百度/必应 搜索", f"https://www.bing.com/news/search?q={search_q}")
 
+    # --- 第一页最底部的财务速览 (User Request) ---
+    if ticker and not hist.empty:
+        st.markdown("---")
+        st.markdown("### ⚡ 财务速览 (Quick Look)")
+        st.caption("最近一期核心数据概览")
+        # 再次调用 info 里的快速数据
+        f1, f2, f3, f4 = st.columns(4)
+        f1.metric("总营收", f"{info.get('totalRevenue', 0)/1e9:,.2f} B")
+        f2.metric("毛利润", f"{info.get('grossProfits', 0)/1e9:,.2f} B")
+        f3.metric("总现金", f"{info.get('totalCash', 0)/1e9:,.2f} B")
+        f4.metric("总债务", f"{info.get('totalDebt', 0)/1e9:,.2f} B")
+
+
+# ==========================================
+# 模式 B: 多股 PK (3-4股对比)
+# ==========================================
 else:
-    # 欢迎页
-    st.balloons()
-    st.markdown("""
-    <div style='text-align: center; padding: 50px;'>
-        <h1>👋 欢迎使用宝宝专用投研终端</h1>
-        <p>请在左侧侧边栏选择模式并输入代码</p>
-    </div>
-    """, unsafe_allow_html=True)
+    with st.sidebar:
+        st.subheader("配置比赛选手")
+        st.caption("请填入代码 (美股直接填，A股加 .SS 或 .SZ)")
+        
+        # 固定 4 个输入框
+        t1 = st.text_input("选手 1", value="NVDA").strip().upper()
+        t2 = st.text_input("选手 2", value="AMD").strip().upper()
+        t3 = st.text_input("选手 3 (选填)", value="INTC").strip().upper()
+        t4 = st.text_input("选手 4 (选填)", value="").strip().upper()
+        
+        start_pk = st.button("🚀 开始 PK", type="primary")
+
+    if start_pk or t1:
+        st.title("⚔️ 股票擂台赛")
+        
+        # 收集所有非空代码
+        candidates = [c for c in [t1, t2, t3, t4] if c]
+        
+        if not candidates:
+            st.info("请在左侧至少输入两只股票代码。")
+            st.stop()
+
+        data_box = {}
+        valid_candidates = []
+
+        with st.spinner("裁判正在入场 (加载数据)..."):
+            for c in candidates:
+                s = yf.Ticker(c)
+                h = s.history(period="1y")
+                if not h.empty:
+                    # 计算累计收益率 %
+                    h['Pct'] = (h['Close'] / h['Close'].iloc[0] - 1) * 100
+                    data_box[c] = h['Pct']
+                    valid_candidates.append(c)
+        
+        if valid_candidates:
+            # 1. 赛跑图
+            st.subheader("📈 累计收益率对比 (1年)")
+            fig = go.Figure()
+            for vc in valid_candidates:
+                fig.add_trace(go.Scatter(x=data_box[vc].index, y=data_box[vc], mode='lines', name=vc))
+            
+            fig.update_layout(template="plotly_dark", hovermode="x unified", yaxis_title="累计涨跌 (%)")
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # 2. 核心数据横向对比表
+            st.subheader("📊 基本面硬碰硬")
+            
+            # 构建对比数据
+            comp_data = []
+            for vc in valid_candidates:
+                inf = yf.Ticker(vc).info
+                comp_data.append({
+                    "代码": vc,
+                    "名称": inf.get('shortName', vc),
+                    "最新价": inf.get('currentPrice', 'N/A'),
+                    "市盈率 (PE)": inf.get('trailingPE', 'N/A'),
+                    "市值 (Billions)": f"{inf.get('marketCap', 0)/1e9:.2f} B",
+                    "52周最高": inf.get('fiftyTwoWeekHigh', 'N/A'),
+                    "机构评级": inf.get('recommendationKey', 'N/A').upper()
+                })
+            
+            df_comp = pd.DataFrame(comp_data)
+            st.dataframe(df_comp, use_container_width=True)
+            
+        else:
+            st.error("输入的代码似乎都无法获取数据，请检查拼写 (A股记得加后缀)。")
