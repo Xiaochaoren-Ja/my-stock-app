@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import datetime
 
 # --- 1. 全局配置 & 极光UI系统 ---
-st.set_page_config(page_title="宝宝专用 | 顶级投研终端", layout="wide", page_icon="💖")
+st.set_page_config(page_title="谁懂了我的钱", layout="wide", page_icon="💖")
 
 # --- CSS 深度定制 ---
 st.markdown("""
@@ -302,3 +302,4 @@ st.markdown("""
     <p>© 2025 ProTrade Terminal | Designed for Professional Traders</p>
 </div>
 """, unsafe_allow_html=True)
+
