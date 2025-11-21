@@ -5,38 +5,40 @@ import pandas as pd
 from datetime import datetime
 
 # --- 1. 全局配置 ---
-st.set_page_config(page_title="Who the Fk Touch My Money", layout="wide")
+st.set_page_config(page_title="谁懂了我的钱 | 投研终端", layout="wide")
 
 # --- 2. 侧边栏配置 (含主题切换) ---
 with st.sidebar:
-    st.header("Who the Fk Touch My Money")
+    st.header("谁懂了我的钱")
     st.caption("Professional Investment Terminal")
     st.markdown("---")
     
-    # === 背景主题切换 (已移除白色和淡蓝色) ===
+    # === 背景主题切换 ===
     theme = st.selectbox("界面风格 / Theme", 
                          ["深空极光 (默认)", "搞钱护眼绿", "赛博朋克紫", "极简纯黑"])
     
     # --- 主题色板逻辑 (全深色系配置) ---
-    # 默认通用配置 (适用于所有深色主题)
+    # 默认通用配置
     bg_css = "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)" # 默认极光
     text_color = "#ffffff"       
     sub_text_color = "#e0e0e0"   
-    card_bg = "rgba(255, 255, 255, 0.05)"
-    metric_color = "#00c6ff"     # 亮蓝 
-    sidebar_bg = "rgba(0, 0, 0, 0.3)"
+    # 修复点：增加侧边栏不透明度，防止透出浏览器的白色背景
+    sidebar_bg = "#111318" 
+    metric_color = "#00c6ff"     
     chart_theme = "plotly_dark"
-    input_bg = "rgba(255,255,255,0.1)"
 
     # 特定主题覆盖
     if "搞钱" in theme:
-        bg_css = "linear-gradient(135deg, #134E5E 0%, #71B280 100%)" # 深绿渐变
+        bg_css = "linear-gradient(135deg, #134E5E 0%, #71B280 100%)" 
+        sidebar_bg = "#0e241b" # 深绿底
     
     elif "赛博" in theme:
-        bg_css = "linear-gradient(to right, #240b36, #c31432)" # 紫红渐变
+        bg_css = "linear-gradient(to right, #240b36, #c31432)" 
+        sidebar_bg = "#1a0526" # 深紫底
         
     elif "极简" in theme:
-        bg_css = "#0e1117" # 纯黑
+        bg_css = "#0e1117" 
+        sidebar_bg = "#000000" # 纯黑底
 
     st.markdown("---")
     
@@ -62,18 +64,35 @@ with st.sidebar:
             
         period = st.select_slider("时间跨度", options=["1mo", "3mo", "6mo", "1y", "3y", "5y"], value="1y")
 
-# --- 3. CSS 注入 (全深色高对比度) ---
+# --- 3. CSS 注入 (强制高对比度，解决白底看不清问题) ---
 st.markdown(f"""
 <style>
-    /* 全局背景和字体颜色 */
+    /* 1. 强制全局背景覆盖 (无论浏览器是黑是白) */
     .stApp {{
         background: {bg_css};
         color: {text_color};
         padding-bottom: 80px; 
     }}
     
-    /* 强制所有文本为白色 (深色背景通用) */
-    .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, p, li {{
+    /* 2. 强制侧边栏不透明 (解决白底透视问题) */
+    section[data-testid="stSidebar"] {{
+        background-color: {sidebar_bg} !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }}
+    
+    /* 3. 强制输入框变深色 (解决白底输入框看不清白字的问题) */
+    .stTextInput input, .stSelectbox div[data-baseweb="select"], .stMultiSelect div[data-baseweb="select"] {{
+        color: white !important;
+        background-color: rgba(255, 255, 255, 0.1) !important; 
+        border-color: rgba(255, 255, 255, 0.2) !important;
+    }}
+    /* 输入框内的占位符颜色 */
+    ::placeholder {{
+        color: rgba(255, 255, 255, 0.5) !important;
+    }}
+    
+    /* 4. 强制所有文本为白色 */
+    .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, p, li, span {{
         color: {text_color} !important;
     }}
     
@@ -81,13 +100,6 @@ st.markdown(f"""
     .stTextInput label, .stSelectbox label, .stRadio label, .stMultiSelect label, .stSlider label {{
         color: {text_color} !important;
         font-weight: bold;
-    }}
-    
-    /* 侧边栏样式 */
-    section[data-testid="stSidebar"] {{
-        background-color: {sidebar_bg};
-        backdrop-filter: blur(15px);
-        border-right: 1px solid rgba(128, 128, 128, 0.2);
     }}
     
     /* 关键指标数字颜色 */
@@ -111,19 +123,19 @@ st.markdown(f"""
         font-weight: bold;
     }}
 
-    /* 固定页脚样式 */
+    /* 固定页脚样式 (深色底) */
     .footer {{
         position: fixed;
         left: 0;
         bottom: 0;
         width: 100%;
-        background-color: rgba(15, 32, 39, 0.95);
+        background-color: #0e1117;
         color: {sub_text_color};
         text-align: center;
         padding: 10px;
         font-size: 12px;
         z-index: 9999;
-        border-top: 1px solid rgba(128, 128, 128, 0.2);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
     }}
     .footer a {{ color: {metric_color}; text-decoration: none; }}
 </style>
@@ -351,4 +363,3 @@ st.markdown("""
     <p>© 2025 Who Understood My Money | Designed for Pro Investors</p>
 </div>
 """, unsafe_allow_html=True)
-
