@@ -7,7 +7,7 @@ from datetime import datetime
 # --- 1. 全局配置 ---
 st.set_page_config(page_title="谁懂了我的钱 | 投研终端", layout="wide")
 
-# --- 2. 侧边栏配置 (含主题切换) ---
+# --- 2. 侧边栏配置 ---
 with st.sidebar:
     st.header("谁懂了我的钱")
     st.caption("Professional Investment Terminal")
@@ -17,32 +17,26 @@ with st.sidebar:
     theme = st.selectbox("界面风格 / Theme", 
                          ["深空极光 (默认)", "搞钱护眼绿", "赛博朋克紫", "极简纯黑"])
     
-    # --- 主题色板逻辑 (全深色系配置) ---
+    # --- 主题色板逻辑 ---
     # 默认通用配置
     bg_css = "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)" # 默认极光
-    text_color = "#ffffff"       
-    sub_text_color = "#e0e0e0"   
-    # 修复点：增加侧边栏不透明度，防止透出浏览器的白色背景
-    sidebar_bg = "#111318" 
-    metric_color = "#00c6ff"     
-    chart_theme = "plotly_dark"
+    metric_color = "#00c6ff" # 默认亮蓝
+    chart_template = "plotly_dark"
 
-    # 特定主题覆盖
     if "搞钱" in theme:
-        bg_css = "linear-gradient(135deg, #134E5E 0%, #71B280 100%)" 
-        sidebar_bg = "#0e241b" # 深绿底
+        bg_css = "linear-gradient(135deg, #134E5E 0%, #71B280 100%)"
+        metric_color = "#00e676"
     
     elif "赛博" in theme:
-        bg_css = "linear-gradient(to right, #240b36, #c31432)" 
-        sidebar_bg = "#1a0526" # 深紫底
+        bg_css = "linear-gradient(to right, #240b36, #c31432)"
+        metric_color = "#ff00cc"
         
     elif "极简" in theme:
-        bg_css = "#0e1117" 
-        sidebar_bg = "#000000" # 纯黑底
+        bg_css = "#0e1117"
+        metric_color = "#ffffff"
 
     st.markdown("---")
     
-    # 模式选择
     mode = st.radio("功能模式", ["单股深度分析", "多股对比 (VS)"])
     
     st.markdown("---")
@@ -64,73 +58,84 @@ with st.sidebar:
             
         period = st.select_slider("时间跨度", options=["1mo", "3mo", "6mo", "1y", "3y", "5y"], value="1y")
 
-# --- 3. CSS 注入 (强制高对比度，解决白底看不清问题) ---
+# --- 3. CSS 强力注入 (修复看不清的问题) ---
 st.markdown(f"""
 <style>
-    /* 1. 强制全局背景覆盖 (无论浏览器是黑是白) */
+    /* 1. 强制应用深色背景 (覆盖浏览器默认白底) */
     .stApp {{
         background: {bg_css};
-        color: {text_color};
-        padding-bottom: 80px; 
+        color: white;
+        padding-bottom: 80px;
     }}
-    
-    /* 2. 强制侧边栏不透明 (解决白底透视问题) */
+
+    /* 2. 侧边栏：半透明磨砂效果 */
     section[data-testid="stSidebar"] {{
-        background-color: {sidebar_bg} !important;
+        background-color: rgba(0, 0, 0, 0.2) !important; /* 20% 黑色半透明 */
+        backdrop-filter: blur(10px); /* 毛玻璃模糊 */
         border-right: 1px solid rgba(255, 255, 255, 0.1);
     }}
     
-    /* 3. 强制输入框变深色 (解决白底输入框看不清白字的问题) */
-    .stTextInput input, .stSelectbox div[data-baseweb="select"], .stMultiSelect div[data-baseweb="select"] {{
+    /* 3. 侧边栏文字颜色：强制白色 (确保在半透明黑底上看得清) */
+    section[data-testid="stSidebar"] .stMarkdown, 
+    section[data-testid="stSidebar"] h1, 
+    section[data-testid="stSidebar"] h2, 
+    section[data-testid="stSidebar"] h3, 
+    section[data-testid="stSidebar"] p, 
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] label {{
+        color: #ffffff !important;
+    }}
+
+    /* 4. 【关键修复】输入框 & 下拉框：强制深色背景 + 白字 */
+    /* 解决白底白字看不清的问题 */
+    div[data-baseweb="select"] > div, 
+    div[data-baseweb="input"] > div {{
+        background-color: rgba(0, 0, 0, 0.4) !important; /* 深色半透明底 */
         color: white !important;
-        background-color: rgba(255, 255, 255, 0.1) !important; 
-        border-color: rgba(255, 255, 255, 0.2) !important;
+        border-color: rgba(255,255,255,0.2) !important;
     }}
-    /* 输入框内的占位符颜色 */
-    ::placeholder {{
-        color: rgba(255, 255, 255, 0.5) !important;
+    input[type="text"] {{
+        color: white !important; /* 输入文字强制白色 */
     }}
-    
-    /* 4. 强制所有文本为白色 */
-    .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, p, li, span {{
-        color: {text_color} !important;
+    div[data-baseweb="select"] span {{
+        color: white !important; /* 选中文字强制白色 */
     }}
     
-    /* 输入框 Label 颜色 */
-    .stTextInput label, .stSelectbox label, .stRadio label, .stMultiSelect label, .stSlider label {{
-        color: {text_color} !important;
-        font-weight: bold;
+    /* 5. 全局文字强制白色 (高对比度) */
+    .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, p, li {{
+        color: #ffffff !important;
     }}
     
-    /* 关键指标数字颜色 */
+    /* 6. 关键指标数字颜色 */
     div[data-testid="stMetricValue"] {{
         color: {metric_color} !important;
         font-weight: 900;
         font-size: 26px !important;
     }}
     
-    /* 指标 Label 颜色 */
+    /* 7. 指标 Label 颜色 (浅灰，形成层次) */
     div[data-testid="stMetricLabel"] {{
-        color: {sub_text_color} !important;
+        color: #e0e0e0 !important;
     }}
 
-    /* 按钮样式 */
+    /* 8. 按钮样式 */
     .stButton>button {{
         border-radius: 4px;
         background: {metric_color}; 
         color: white !important;
         border: none;
         font-weight: bold;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }}
 
-    /* 固定页脚样式 (深色底) */
+    /* 9. 固定页脚 (深色底，防止透视) */
     .footer {{
         position: fixed;
         left: 0;
         bottom: 0;
         width: 100%;
         background-color: #0e1117;
-        color: {sub_text_color};
+        color: #888;
         text-align: center;
         padding: 10px;
         font-size: 12px;
@@ -230,7 +235,7 @@ if "单股" in mode and final_ticker:
         layout_bg = "rgba(0,0,0,0)"
         grid_color = "rgba(128,128,128,0.1)"
         
-        fig.update_layout(height=500, template=chart_theme, paper_bgcolor=layout_bg, plot_bgcolor=layout_bg, margin=dict(l=0,r=0,t=0,b=0), xaxis_rangeslider_visible=False, hovermode="x unified")
+        fig.update_layout(height=500, template=chart_template, paper_bgcolor=layout_bg, plot_bgcolor=layout_bg, margin=dict(l=0,r=0,t=0,b=0), xaxis_rangeslider_visible=False, hovermode="x unified")
         fig.update_xaxes(showgrid=True, gridcolor=grid_color)
         fig.update_yaxes(showgrid=True, gridcolor=grid_color)
         st.plotly_chart(fig, use_container_width=True)
@@ -246,9 +251,9 @@ if "单股" in mode and final_ticker:
             fig_g = go.Figure(go.Indicator(
                 mode = "gauge+number+delta",
                 value = upside,
-                title = {'text': "目标空间 (%)", 'font': {'color': text_color, 'size': 14}},
+                title = {'text': "目标空间 (%)", 'font': {'color': "white", 'size': 14}},
                 delta = {'reference': 0},
-                number = {'font': {'color': text_color}},
+                number = {'font': {'color': "white"}},
                 gauge = {'axis': {'range': [-30, 80]}, 'bar': {'color': gauge_color}, 'bgcolor': "rgba(0,0,0,0)"}
             ))
             fig_g.update_layout(height=350, margin=dict(l=10,r=10,t=0,b=0), paper_bgcolor="rgba(0,0,0,0)")
@@ -351,7 +356,7 @@ else:
                 fig.add_trace(go.Scatter(x=data[v].index, y=data[v], mode='lines', name=v))
             
             # 图表主题适配 (全深色)
-            fig.update_layout(template=chart_theme, title="近一年累计收益率 (%)", hovermode="x unified")
+            fig.update_layout(template=chart_template, title="近一年累计收益率 (%)", hovermode="x unified")
             st.plotly_chart(fig, use_container_width=True)
 
 # --- 5. 固定页脚 Reference ---
