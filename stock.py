@@ -13,27 +13,28 @@ with st.sidebar:
     st.caption("Professional Investment Terminal")
     st.markdown("---")
     
-    # === 背景主题切换 ===
+    # === 主题切换 (全改为浅色背景 + 深色字) ===
     theme = st.selectbox("界面风格 / Theme", 
-                         ["深空极光 (默认)", "搞钱护眼绿", "赛博朋克紫", "极简纯黑"])
+                         ["简约商务白 (默认)", "护眼淡雅绿", "高盛金融蓝"])
     
-    # --- 主题色板逻辑 ---
-    # 默认通用配置
-    bg_css = "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)" # 默认极光
-    metric_color = "#00c6ff" # 默认亮蓝
-    chart_template = "plotly_dark"
+    # --- 配色逻辑 (浅色底 + 深色字) ---
+    # 默认配置 (商务白)
+    bg_css = "#f8f9fa"              # 极浅的灰白背景，不刺眼
+    sidebar_bg = "#ffffff"          # 纯白侧边栏
+    text_color = "#000000"          # 纯黑文字
+    card_bg = "#ffffff"             # 卡片白色
+    metric_color = "#2E86C1"        # 稳重的深蓝
+    chart_template = "plotly_white" # 图表白底
 
-    if "搞钱" in theme:
-        bg_css = "linear-gradient(135deg, #134E5E 0%, #71B280 100%)"
-        metric_color = "#00e676"
+    if "绿" in theme:
+        bg_css = "#f1f8e9"          # 淡绿背景
+        sidebar_bg = "#dcedc8"      # 侧边栏稍深一点
+        metric_color = "#2e7d32"    # 深绿指标
     
-    elif "赛博" in theme:
-        bg_css = "linear-gradient(to right, #240b36, #c31432)"
-        metric_color = "#ff00cc"
-        
-    elif "极简" in theme:
-        bg_css = "#0e1117"
-        metric_color = "#ffffff"
+    elif "蓝" in theme:
+        bg_css = "#e3f2fd"          # 淡蓝背景
+        sidebar_bg = "#bbdefb"      # 侧边栏稍深
+        metric_color = "#1565c0"    # 深蓝指标
 
     st.markdown("---")
     
@@ -58,52 +59,50 @@ with st.sidebar:
             
         period = st.select_slider("时间跨度", options=["1mo", "3mo", "6mo", "1y", "3y", "5y"], value="1y")
 
-# --- 3. CSS 强力注入 (修复看不清的问题) ---
+# --- 3. CSS 强力注入 (强制浅色模式 + 深色字) ---
 st.markdown(f"""
 <style>
-    /* 1. 强制应用深色背景 (覆盖浏览器默认白底) */
+    /* 1. 全局背景 (浅色) */
     .stApp {{
-        background: {bg_css};
-        color: white;
+        background-color: {bg_css};
+        color: {text_color};
         padding-bottom: 80px;
     }}
 
-    /* 2. 侧边栏：半透明磨砂效果 */
+    /* 2. 侧边栏 (浅色 + 阴影) */
     section[data-testid="stSidebar"] {{
-        background-color: rgba(0, 0, 0, 0.2) !important; /* 20% 黑色半透明 */
-        backdrop-filter: blur(10px); /* 毛玻璃模糊 */
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: {sidebar_bg} !important;
+        border-right: 1px solid #e0e0e0;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.05);
     }}
     
-    /* 3. 侧边栏文字颜色：强制白色 (确保在半透明黑底上看得清) */
+    /* 3. 侧边栏文字强制深色 */
     section[data-testid="stSidebar"] .stMarkdown, 
-    section[data-testid="stSidebar"] h1, 
-    section[data-testid="stSidebar"] h2, 
-    section[data-testid="stSidebar"] h3, 
-    section[data-testid="stSidebar"] p, 
-    section[data-testid="stSidebar"] span,
-    section[data-testid="stSidebar"] label {{
-        color: #ffffff !important;
+    section[data-testid="stSidebar"] h1, h2, h3, p, span, label {{
+        color: {text_color} !important;
     }}
 
-    /* 4. 【关键修复】输入框 & 下拉框：强制深色背景 + 白字 */
-    /* 解决白底白字看不清的问题 */
+    /* 4. 【核心修复】输入框 & 下拉框：白底 + 黑字 + 深边框 */
     div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] > div {{
-        background-color: rgba(0, 0, 0, 0.4) !important; /* 深色半透明底 */
-        color: white !important;
-        border-color: rgba(255,255,255,0.2) !important;
-    }}
-    input[type="text"] {{
-        color: white !important; /* 输入文字强制白色 */
-    }}
-    div[data-baseweb="select"] span {{
-        color: white !important; /* 选中文字强制白色 */
+        background-color: #ffffff !important; /* 强制纯白底 */
+        color: #000000 !important;           /* 强制黑字 */
+        border-color: #cccccc !important;    /* 灰色边框 */
     }}
     
-    /* 5. 全局文字强制白色 (高对比度) */
+    /* 输入框内的文字 */
+    input[type="text"] {{
+        color: #000000 !important; 
+    }}
+    
+    /* 下拉框选中的文字 */
+    div[data-baseweb="select"] span {{
+        color: #000000 !important;
+    }}
+    
+    /* 5. 全局正文强制深色 */
     .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, p, li {{
-        color: #ffffff !important;
+        color: {text_color} !important;
     }}
     
     /* 6. 关键指标数字颜色 */
@@ -113,34 +112,35 @@ st.markdown(f"""
         font-size: 26px !important;
     }}
     
-    /* 7. 指标 Label 颜色 (浅灰，形成层次) */
+    /* 7. 指标 Label 颜色 (深灰) */
     div[data-testid="stMetricLabel"] {{
-        color: #e0e0e0 !important;
+        color: #555555 !important;
     }}
 
-    /* 8. 按钮样式 */
+    /* 8. 按钮样式 (扁平化商务风) */
     .stButton>button {{
         border-radius: 4px;
         background: {metric_color}; 
         color: white !important;
         border: none;
         font-weight: bold;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }}
 
-    /* 9. 固定页脚 (深色底，防止透视) */
+    /* 9. 固定页脚 (白底深字) */
     .footer {{
         position: fixed;
         left: 0;
         bottom: 0;
         width: 100%;
-        background-color: #0e1117;
-        color: #888;
+        background-color: #ffffff;
+        color: #666666;
         text-align: center;
         padding: 10px;
         font-size: 12px;
         z-index: 9999;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: 1px solid #eeeeee;
+        box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
     }}
     .footer a {{ color: {metric_color}; text-decoration: none; }}
 </style>
@@ -170,7 +170,7 @@ if "单股" in mode and final_ticker:
             st.stop()
 
     # --- 顶部：核心行情 ---
-    st.markdown(f"## {info.get('shortName', final_ticker)} <span style='font-size:0.6em;opacity:0.6'>({final_ticker})</span>", unsafe_allow_html=True)
+    st.markdown(f"## {info.get('shortName', final_ticker)} <span style='font-size:0.6em;color:#666'>({final_ticker})</span>", unsafe_allow_html=True)
     
     curr = info.get('currentPrice') or hist['Close'].iloc[-1]
     prev = info.get('previousClose') or hist['Close'].iloc[-2]
@@ -207,15 +207,15 @@ if "单股" in mode and final_ticker:
         # 2. 动态添加指标
         if "MA 20 (月线)" in indicators:
             ma20 = hist['Close'].rolling(window=20).mean()
-            fig.add_trace(go.Scatter(x=hist.index, y=ma20, mode='lines', name='MA 20', line=dict(color='#00d2ff', width=1.5)))
+            fig.add_trace(go.Scatter(x=hist.index, y=ma20, mode='lines', name='MA 20', line=dict(color='#0099cc', width=1.5)))
             
         if "MA 50 (季线)" in indicators:
             ma50 = hist['Close'].rolling(window=50).mean()
-            fig.add_trace(go.Scatter(x=hist.index, y=ma50, mode='lines', name='MA 50', line=dict(color='#ff9f43', width=1.5)))
+            fig.add_trace(go.Scatter(x=hist.index, y=ma50, mode='lines', name='MA 50', line=dict(color='#ff8800', width=1.5)))
 
         if "EMA 20 (趋势)" in indicators:
             ema20 = hist['Close'].ewm(span=20, adjust=False).mean()
-            fig.add_trace(go.Scatter(x=hist.index, y=ema20, mode='lines', name='EMA 20', line=dict(color='#e056fd', width=1.5, dash='dot')))
+            fig.add_trace(go.Scatter(x=hist.index, y=ema20, mode='lines', name='EMA 20', line=dict(color='#9933cc', width=1.5, dash='dot')))
 
         if "布林带 (Bollinger)" in indicators:
             sma = hist['Close'].rolling(window=20).mean()
@@ -223,17 +223,17 @@ if "单股" in mode and final_ticker:
             upper = sma + (std * 2)
             lower = sma - (std * 2)
             fig.add_trace(go.Scatter(x=hist.index, y=upper, mode='lines', line=dict(width=0), name='布林上轨', showlegend=False, hoverinfo='skip'))
-            fig.add_trace(go.Scatter(x=hist.index, y=lower, mode='lines', line=dict(width=0), name='布林下轨', fill='tonexty', fillcolor='rgba(128, 128, 128, 0.2)', showlegend=False, hoverinfo='skip'))
+            fig.add_trace(go.Scatter(x=hist.index, y=lower, mode='lines', line=dict(width=0), name='布林下轨', fill='tonexty', fillcolor='rgba(0, 0, 255, 0.05)', showlegend=False, hoverinfo='skip'))
 
         if "唐奇安通道 (Donchian)" in indicators:
             high_20 = hist['High'].rolling(window=20).max()
             low_20 = hist['Low'].rolling(window=20).min()
-            fig.add_trace(go.Scatter(x=hist.index, y=high_20, mode='lines', name='唐奇安上轨', line=dict(color='rgba(0, 255, 0, 0.5)', width=1, dash='dash')))
+            fig.add_trace(go.Scatter(x=hist.index, y=high_20, mode='lines', name='唐奇安上轨', line=dict(color='rgba(0, 128, 0, 0.5)', width=1, dash='dash')))
             fig.add_trace(go.Scatter(x=hist.index, y=low_20, mode='lines', name='唐奇安下轨', line=dict(color='rgba(255, 0, 0, 0.5)', width=1, dash='dash')))
         
-        # 图表背景 (始终保持深色，高对比度)
+        # 图表背景 (白底，适应浅色主题)
         layout_bg = "rgba(0,0,0,0)"
-        grid_color = "rgba(128,128,128,0.1)"
+        grid_color = "rgba(0,0,0,0.05)"
         
         fig.update_layout(height=500, template=chart_template, paper_bgcolor=layout_bg, plot_bgcolor=layout_bg, margin=dict(l=0,r=0,t=0,b=0), xaxis_rangeslider_visible=False, hovermode="x unified")
         fig.update_xaxes(showgrid=True, gridcolor=grid_color)
@@ -251,9 +251,9 @@ if "单股" in mode and final_ticker:
             fig_g = go.Figure(go.Indicator(
                 mode = "gauge+number+delta",
                 value = upside,
-                title = {'text': "目标空间 (%)", 'font': {'color': "white", 'size': 14}},
+                title = {'text': "目标空间 (%)", 'font': {'color': "#333", 'size': 14}},
                 delta = {'reference': 0},
-                number = {'font': {'color': "white"}},
+                number = {'font': {'color': "#333"}},
                 gauge = {'axis': {'range': [-30, 80]}, 'bar': {'color': gauge_color}, 'bgcolor': "rgba(0,0,0,0)"}
             ))
             fig_g.update_layout(height=350, margin=dict(l=10,r=10,t=0,b=0), paper_bgcolor="rgba(0,0,0,0)")
@@ -294,7 +294,6 @@ if "单股" in mode and final_ticker:
             st.warning("暂无财报数据")
 
     with tab2:
-        # 新闻搜索词逻辑
         q_name = final_ticker if "SS" not in final_ticker else final_ticker.replace(".SS", " 股票")
         q_name = q_name.replace(".SZ", " 股票")
 
@@ -355,7 +354,6 @@ else:
             for v in valid:
                 fig.add_trace(go.Scatter(x=data[v].index, y=data[v], mode='lines', name=v))
             
-            # 图表主题适配 (全深色)
             fig.update_layout(template=chart_template, title="近一年累计收益率 (%)", hovermode="x unified")
             st.plotly_chart(fig, use_container_width=True)
 
