@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import datetime
 
 # --- 1. 全局配置 ---
-st.set_page_config(page_title="谁懂了我的钱 | 投研终端", layout="wide")
+st.set_page_config(page_title="谁懂了我的钱", layout="wide")
 
 # --- 2. 侧边栏配置 (含主题切换) ---
 with st.sidebar:
@@ -13,50 +13,30 @@ with st.sidebar:
     st.caption("Professional Investment Terminal")
     st.markdown("---")
     
-    # === 背景主题切换 (修复了浅色看不清的问题) ===
+    # === 背景主题切换 (已移除白色和淡蓝色) ===
     theme = st.selectbox("界面风格 / Theme", 
-                         ["深空极光 (默认)", "商务淡蓝 (Light Blue)", "高盛白 (Clean White)", "搞钱护眼绿", "赛博朋克紫", "极简纯黑"])
+                         ["深空极光 (默认)", "搞钱护眼绿", "赛博朋克紫", "极简纯黑"])
     
-    # --- 主题色板逻辑 ---
-    # 默认深色系配置
-    bg_css = "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)"
-    text_color = "#ffffff"       # 深色背景用白字
-    sub_text_color = "#e0e0e0"   # 次级文字
+    # --- 主题色板逻辑 (全深色系配置) ---
+    # 默认通用配置 (适用于所有深色主题)
+    bg_css = "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)" # 默认极光
+    text_color = "#ffffff"       
+    sub_text_color = "#e0e0e0"   
     card_bg = "rgba(255, 255, 255, 0.05)"
-    metric_color = "#00c6ff"     # 亮蓝 (深色背景显眼)
+    metric_color = "#00c6ff"     # 亮蓝 
     sidebar_bg = "rgba(0, 0, 0, 0.3)"
     chart_theme = "plotly_dark"
     input_bg = "rgba(255,255,255,0.1)"
 
-    # 针对浅色主题的特殊配置
-    if "淡蓝" in theme:
-        bg_css = "linear-gradient(to bottom, #e0eafc, #cfdef3)" 
-        text_color = "#000000"   # 浅色背景强制黑字
-        sub_text_color = "#333333"
-        card_bg = "rgba(255, 255, 255, 0.7)" # 更不透明的白底
-        metric_color = "#003366" # 深海军蓝 (浅色背景显眼)
-        sidebar_bg = "rgba(255, 255, 255, 0.5)" # 浅色侧边栏
-        chart_theme = "plotly_white"
-        input_bg = "rgba(255,255,255,0.8)"
-
-    elif "高盛" in theme:
-        bg_css = "#ffffff"       # 纯白
-        text_color = "#000000"   # 纯黑字
-        sub_text_color = "#333333"
-        card_bg = "#f8f9fa"      # 浅灰卡片
-        metric_color = "#137333" # 深绿 (类似金融终端涨跌色)
-        sidebar_bg = "#f0f2f6"   # 浅灰侧边栏
-        chart_theme = "plotly_white"
-        input_bg = "#ffffff"
-
-    elif "搞钱" in theme:
-        bg_css = "linear-gradient(135deg, #134E5E 0%, #71B280 100%)"
+    # 特定主题覆盖
+    if "搞钱" in theme:
+        bg_css = "linear-gradient(135deg, #134E5E 0%, #71B280 100%)" # 深绿渐变
     
     elif "赛博" in theme:
-        bg_css = "linear-gradient(to right, #240b36, #c31432)"
+        bg_css = "linear-gradient(to right, #240b36, #c31432)" # 紫红渐变
         
     elif "极简" in theme:
-        bg_css = "#0e1117"
+        bg_css = "#0e1117" # 纯黑
 
     st.markdown("---")
     
@@ -82,7 +62,7 @@ with st.sidebar:
             
         period = st.select_slider("时间跨度", options=["1mo", "3mo", "6mo", "1y", "3y", "5y"], value="1y")
 
-# --- 3. CSS 注入 (强制覆盖颜色) ---
+# --- 3. CSS 注入 (全深色高对比度) ---
 st.markdown(f"""
 <style>
     /* 全局背景和字体颜色 */
@@ -92,7 +72,7 @@ st.markdown(f"""
         padding-bottom: 80px; 
     }}
     
-    /* 强制修改所有文本颜色 (解决浅色看不清的问题) */
+    /* 强制所有文本为白色 (深色背景通用) */
     .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, p, li {{
         color: {text_color} !important;
     }}
@@ -110,7 +90,7 @@ st.markdown(f"""
         border-right: 1px solid rgba(128, 128, 128, 0.2);
     }}
     
-    /* 关键指标数字颜色 (动态变化) */
+    /* 关键指标数字颜色 */
     div[data-testid="stMetricValue"] {{
         color: {metric_color} !important;
         font-weight: 900;
@@ -125,8 +105,8 @@ st.markdown(f"""
     /* 按钮样式 */
     .stButton>button {{
         border-radius: 4px;
-        background: {metric_color}; /* 按钮颜色跟随指标颜色 */
-        color: white !important; /* 按钮文字永远白色 */
+        background: {metric_color}; 
+        color: white !important;
         border: none;
         font-weight: bold;
     }}
@@ -137,7 +117,7 @@ st.markdown(f"""
         left: 0;
         bottom: 0;
         width: 100%;
-        background-color: {card_bg};
+        background-color: rgba(15, 32, 39, 0.95);
         color: {sub_text_color};
         text-align: center;
         padding: 10px;
@@ -234,7 +214,7 @@ if "单股" in mode and final_ticker:
             fig.add_trace(go.Scatter(x=hist.index, y=high_20, mode='lines', name='唐奇安上轨', line=dict(color='rgba(0, 255, 0, 0.5)', width=1, dash='dash')))
             fig.add_trace(go.Scatter(x=hist.index, y=low_20, mode='lines', name='唐奇安下轨', line=dict(color='rgba(255, 0, 0, 0.5)', width=1, dash='dash')))
         
-        # 图表背景自适应
+        # 图表背景 (始终保持深色，高对比度)
         layout_bg = "rgba(0,0,0,0)"
         grid_color = "rgba(128,128,128,0.1)"
         
@@ -251,15 +231,12 @@ if "单股" in mode and final_ticker:
             upside = ((rec_mean - current_p) / current_p) * 100
             gauge_color = "#00c853" if upside > 0 else "#d50000"
             
-            # Gauge 颜色适配
-            gauge_font_color = text_color
-            
             fig_g = go.Figure(go.Indicator(
                 mode = "gauge+number+delta",
                 value = upside,
-                title = {'text': "目标空间 (%)", 'font': {'color': gauge_font_color, 'size': 14}},
+                title = {'text': "目标空间 (%)", 'font': {'color': text_color, 'size': 14}},
                 delta = {'reference': 0},
-                number = {'font': {'color': gauge_font_color}},
+                number = {'font': {'color': text_color}},
                 gauge = {'axis': {'range': [-30, 80]}, 'bar': {'color': gauge_color}, 'bgcolor': "rgba(0,0,0,0)"}
             ))
             fig_g.update_layout(height=350, margin=dict(l=10,r=10,t=0,b=0), paper_bgcolor="rgba(0,0,0,0)")
@@ -361,7 +338,7 @@ else:
             for v in valid:
                 fig.add_trace(go.Scatter(x=data[v].index, y=data[v], mode='lines', name=v))
             
-            # 图表主题适配
+            # 图表主题适配 (全深色)
             fig.update_layout(template=chart_theme, title="近一年累计收益率 (%)", hovermode="x unified")
             st.plotly_chart(fig, use_container_width=True)
 
