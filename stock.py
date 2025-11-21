@@ -4,80 +4,37 @@ import plotly.graph_objects as go
 import pandas as pd
 from datetime import datetime
 
-# --- 1. 全局配置 & 极光UI系统 ---
-st.set_page_config(page_title="谁懂了我的钱", layout="wide", page_icon="💖")
+# --- 1. 全局配置 ---
+st.set_page_config(page_title="谁懂了我的钱 | 投研终端", layout="wide", page_icon="💸")
 
-# --- CSS 深度定制 ---
-st.markdown("""
-<style>
-    /* 动态背景：深空极光 */
-    .stApp {
-        background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
-        color: #ffffff;
-        padding-bottom: 80px; /* 给底部页脚留出空间 */
-    }
-    
-    /* 侧边栏毛玻璃 */
-    section[data-testid="stSidebar"] {
-        background-color: rgba(0, 0, 0, 0.3);
-        backdrop-filter: blur(15px);
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    /* 关键指标数字美化 */
-    div[data-testid="stMetricValue"] {
-        background: -webkit-linear-gradient(#00c6ff, #0072ff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 900;
-        font-size: 26px !important;
-    }
-
-    /* 按钮样式 */
-    .stButton>button {
-        border-radius: 20px;
-        background: linear-gradient(to right, #00c6ff, #0072ff);
-        color: white;
-        border: none;
-    }
-
-    /* 固定页脚样式 (Fixed Footer) */
-    .footer {
-        position: fixed;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        background-color: rgba(15, 32, 39, 0.95);
-        color: #a0a0a0;
-        text-align: center;
-        padding: 10px;
-        font-size: 12px;
-        z-index: 9999;
-        border-top: 1px solid #333;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
-    }
-    .footer a { color: #00d2ff; text-decoration: none; }
-</style>
-""", unsafe_allow_html=True)
-
-# --- 辅助函数 ---
-def get_stock_safe(ticker):
-    try:
-        return yf.Ticker(ticker)
-    except:
-        return None
-
-# --- 2. 侧边栏逻辑 ---
+# --- 2. 侧边栏配置 (含主题切换) ---
 with st.sidebar:
-    st.markdown("## 💖 宝宝专用投研")
-    st.caption("Professional Intelligence Terminal")
+    st.markdown("## 💸 谁懂了我的钱")
+    st.caption("Where did my money go?")
     st.markdown("---")
     
+    # === 新增功能：背景主题切换 ===
+    theme = st.selectbox("🎨 界面风格 / Theme", 
+                         ["🌌 深空极光 (默认)", "💹 搞钱护眼绿", "🔮 赛博朋克紫", "⚫ 极简纯黑"])
+    
+    # 定义不同主题的 CSS 背景代码
+    if "搞钱" in theme:
+        bg_css = "linear-gradient(135deg, #134E5E 0%, #71B280 100%)" # 深绿渐变
+    elif "赛博" in theme:
+        bg_css = "linear-gradient(to right, #240b36, #c31432)" # 紫红渐变
+    elif "极简" in theme:
+        bg_css = "#0e1117" # 纯黑灰
+    else:
+        bg_css = "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)" # 默认蓝
+
+    st.markdown("---")
+    
+    # 模式选择
     mode = st.radio("功能模式", ["🔍 单股深度分析", "⚔️ 多股PK (VS)"])
     
     st.markdown("---")
     
-    # 初始化 final_ticker 变量，防止 NameError
+    # 初始化变量
     final_ticker = None 
     
     if "单股" in mode:
@@ -94,7 +51,67 @@ with st.sidebar:
             
         period = st.select_slider("时间跨度", options=["1mo", "3mo", "6mo", "1y", "3y", "5y"], value="1y")
 
-# --- 3. 主程序逻辑 ---
+# --- 3. CSS 注入 (根据选择的主题) ---
+st.markdown(f"""
+<style>
+    /* 动态应用背景 */
+    .stApp {{
+        background: {bg_css};
+        color: #ffffff;
+        padding-bottom: 80px; 
+    }}
+    
+    /* 侧边栏毛玻璃效果 */
+    section[data-testid="stSidebar"] {{
+        background-color: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(15px);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }}
+
+    /* 关键指标数字美化 */
+    div[data-testid="stMetricValue"] {{
+        background: -webkit-linear-gradient(#fff, #00d2ff); /* 稍微亮一点的渐变 */
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 900;
+        font-size: 26px !important;
+    }}
+
+    /* 按钮样式 */
+    .stButton>button {{
+        border-radius: 20px;
+        background: linear-gradient(to right, #00c6ff, #0072ff);
+        color: white;
+        border: none;
+        font-weight: bold;
+    }}
+
+    /* 固定页脚样式 */
+    .footer {{
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: rgba(15, 32, 39, 0.95);
+        color: #a0a0a0;
+        text-align: center;
+        padding: 10px;
+        font-size: 12px;
+        z-index: 9999;
+        border-top: 1px solid #333;
+    }}
+    .footer a {{ color: #00d2ff; text-decoration: none; }}
+</style>
+""", unsafe_allow_html=True)
+
+# --- 辅助函数 ---
+def get_stock_safe(ticker):
+    try:
+        return yf.Ticker(ticker)
+    except:
+        return None
+
+# --- 4. 主程序逻辑 ---
 
 # >>>>>>>>> 模式 A: 单股深度分析 <<<<<<<<<
 if "单股" in mode and final_ticker:
@@ -111,7 +128,7 @@ if "单股" in mode and final_ticker:
             st.stop()
 
     # --- 顶部：核心行情 ---
-    st.markdown(f"## {info.get('shortName', final_ticker)} <span style='font-size:0.6em;color:#aaa'>({final_ticker})</span>", unsafe_allow_html=True)
+    st.markdown(f"## {info.get('shortName', final_ticker)} <span style='font-size:0.6em;color:#ccc'>({final_ticker})</span>", unsafe_allow_html=True)
     
     curr = info.get('currentPrice') or hist['Close'].iloc[-1]
     prev = info.get('previousClose') or hist['Close'].iloc[-2]
@@ -126,17 +143,17 @@ if "单股" in mode and final_ticker:
     
     st.markdown("---")
 
-    # --- 超级图表区 (Interactive Chart) ---
+    # --- 超级图表区 ---
     col_chart, col_gauge = st.columns([3, 1])
     
     with col_chart:
-        st.subheader("📈 价格走势 (Price Action)")
+        st.subheader("📈 资金去哪了 (Price Action)")
         
-        # >>> 图表控制台 <<<
+        # 图表控制台
         indicators = st.multiselect(
-            "🛠️ 添加技术指标 (可多选)",
+            "🛠️ 叠加技术指标",
             ["MA 20 (月线)", "MA 50 (季线)", "布林带 (Bollinger)", "唐奇安通道 (Donchian)", "EMA 20 (趋势)"],
-            default=["MA 20 (月线)", "布林带 (Bollinger)"]
+            default=["MA 20 (月线)", "唐奇安通道 (Donchian)"]
         )
         
         # 绘图逻辑
@@ -196,17 +213,17 @@ if "单股" in mode and final_ticker:
             st.info("暂无预测数据")
 
     # --- 实用功能：睡后收入计算器 ---
-    with st.expander("🤑 分红计算器 (点击展开)", expanded=False):
+    with st.expander("🤑 睡后收入计算器 (点击展开)", expanded=False):
         c_calc1, c_calc2, c_calc3 = st.columns(3)
-        shares_to_buy = c_calc1.number_input("持股数量", min_value=100, value=1000, step=100)
+        shares_to_buy = c_calc1.number_input("假如我买入 (股)", min_value=100, value=1000, step=100)
         div_rate = info.get('dividendRate', 0)
         if div_rate:
             annual_income = shares_to_buy * div_rate
             c_calc2.metric("每股分红", f"{div_rate}")
             c_calc3.metric("预计年收入", f"{annual_income:,.2f}")
-            st.success(f"💰 持有 {shares_to_buy} 股，预计每年躺赚 **{annual_income:,.2f}**！")
+            st.success(f"💰 如果持有 {shares_to_buy} 股，预计每年躺赚 **{annual_income:,.2f}** (Pre-Tax)！")
         else:
-            st.warning("该公司暂无分红记录。")
+            st.warning("该公司暂无分红记录 (铁公鸡或成长股)。")
 
     # --- 底部 Tabs ---
     tab1, tab2, tab3 = st.tabs(["💰 深度财报", "📰 智能舆情", "🏦 股东数据"])
@@ -227,8 +244,7 @@ if "单股" in mode and final_ticker:
             st.warning("暂无财报数据")
 
     with tab2:
-        # 修复：这里必须使用 final_ticker，而不是 ticker
-        # 同时也增加了 robust 的错误处理
+        # 新闻搜索词逻辑
         q_name = final_ticker if "SS" not in final_ticker else final_ticker.replace(".SS", " 股票")
         q_name = q_name.replace(".SZ", " 股票")
 
@@ -245,7 +261,6 @@ if "单股" in mode and final_ticker:
                     title = n.get('title', '无标题')
                     link = n.get('link', '#')
                     pub = n.get('publisher', '未知来源')
-                    # 只有当标题有效时才显示
                     if title and title != "无标题":
                         st.markdown(f"**[{title}]({link})**")
                         st.caption(f"来源: {pub}")
@@ -275,7 +290,7 @@ else:
         data = {}
         valid = []
         
-        with st.spinner("正在计算收益率..."):
+        with st.spinner("正在计算谁跑得快..."):
             for t in tickers:
                 s = get_stock_safe(t)
                 if s:
@@ -292,14 +307,12 @@ else:
             fig.update_layout(template="plotly_dark", title="近一年累计收益率 (%)", hovermode="x unified")
             st.plotly_chart(fig, use_container_width=True)
 
-# --- 4. 固定页脚 (Reference) ---
-# 这是一个 HTML/CSS 注入，确保永远在最底部
+# --- 5. 固定页脚 Reference ---
 st.markdown("""
 <div class='footer'>
     <p>🔒 <b>Data Source Reference:</b> Market data provided by <a href='https://finance.yahoo.com/' target='_blank'>Yahoo Finance API</a>. 
     Calculations powered by Pandas/Streamlit.</p>
     <p>⚠️ <b>Disclaimer:</b> This tool is for informational purposes only. "Passive Income" estimates are based on historical dividends.</p>
-    <p>© 2025 ProTrade Terminal | Designed for Professional Traders</p>
+    <p>© 2025 Who Understood My Money | Designed for Pro Investors</p>
 </div>
 """, unsafe_allow_html=True)
-
