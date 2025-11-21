@@ -5,32 +5,50 @@ import pandas as pd
 from datetime import datetime
 
 # --- 1. 全局配置 ---
-st.set_page_config(page_title="谁懂了我的钱 | 投研终端", layout="wide", page_icon="💸")
+# page_icon 设为 None 或简单的 layout
+st.set_page_config(page_title="谁懂了我的钱 | 投研终端", layout="wide")
 
 # --- 2. 侧边栏配置 (含主题切换) ---
 with st.sidebar:
-    st.markdown("## 💸 谁懂了我的钱")
-    st.caption("Where did my money go?")
+    st.header("谁懂了我的钱")
+    st.caption("Professional Investment Terminal")
     st.markdown("---")
     
-    # === 新增功能：背景主题切换 ===
-    theme = st.selectbox("🎨 界面风格 / Theme", 
-                         ["🌌 深空极光 (默认)", "💹 搞钱护眼绿", "🔮 赛博朋克紫", "⚫ 极简纯黑"])
+    # === 背景主题切换 (新增淡蓝色) ===
+    theme = st.selectbox("界面风格 / Theme", 
+                         ["深空极光 (默认)", "商务淡蓝 (Light Blue)", "高盛白 (Clean White)", "搞钱护眼绿", "赛博朋克紫", "极简纯黑"])
     
-    # 定义不同主题的 CSS 背景代码
-    if "搞钱" in theme:
-        bg_css = "linear-gradient(135deg, #134E5E 0%, #71B280 100%)" # 深绿渐变
+    # 定义不同主题的 CSS (背景色 + 字体颜色)
+    # 默认深色系
+    bg_css = "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)"
+    text_color = "#ffffff"
+    card_bg = "rgba(255, 255, 255, 0.05)"
+    metric_color = "#00c6ff" # 默认亮蓝
+
+    if "淡蓝" in theme:
+        bg_css = "linear-gradient(to bottom, #e0eafc, #cfdef3)" # 淡蓝渐变
+        text_color = "#1a1a1a" # 深色字体
+        card_bg = "rgba(255, 255, 255, 0.6)" # 浅色卡片
+        metric_color = "#0056b3" # 深蓝指标
+    elif "高盛" in theme:
+        bg_css = "#f0f2f6" # 纯净灰白
+        text_color = "#000000"
+        card_bg = "#ffffff"
+        metric_color = "#333333"
+    elif "搞钱" in theme:
+        bg_css = "linear-gradient(135deg, #134E5E 0%, #71B280 100%)"
+        text_color = "#ffffff"
     elif "赛博" in theme:
-        bg_css = "linear-gradient(to right, #240b36, #c31432)" # 紫红渐变
+        bg_css = "linear-gradient(to right, #240b36, #c31432)"
+        text_color = "#ffffff"
     elif "极简" in theme:
-        bg_css = "#0e1117" # 纯黑灰
-    else:
-        bg_css = "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)" # 默认蓝
+        bg_css = "#0e1117"
+        text_color = "#ffffff"
 
     st.markdown("---")
     
-    # 模式选择
-    mode = st.radio("功能模式", ["🔍 单股深度分析", "⚔️ 多股PK (VS)"])
+    # 模式选择 (去图标)
+    mode = st.radio("功能模式", ["单股深度分析", "多股对比 (VS)"])
     
     st.markdown("---")
     
@@ -38,8 +56,8 @@ with st.sidebar:
     final_ticker = None 
     
     if "单股" in mode:
-        st.subheader("📌 标的选择")
-        market = st.selectbox("市场", ["🇺🇸 美股 (US)", "🇨🇳 A股 (CN)"])
+        st.subheader("标的选择")
+        market = st.selectbox("市场", ["美股 (US)", "A股 (CN)"])
         
         if "美股" in market:
             symbol = st.text_input("代码", value="NVDA", help="例如 AAPL, TSLA").upper()
@@ -51,36 +69,49 @@ with st.sidebar:
             
         period = st.select_slider("时间跨度", options=["1mo", "3mo", "6mo", "1y", "3y", "5y"], value="1y")
 
-# --- 3. CSS 注入 (根据选择的主题) ---
+# --- 3. CSS 注入 (根据选择的主题自动适配) ---
 st.markdown(f"""
 <style>
     /* 动态应用背景 */
     .stApp {{
         background: {bg_css};
-        color: #ffffff;
+        color: {text_color};
         padding-bottom: 80px; 
     }}
     
-    /* 侧边栏毛玻璃效果 */
+    /* 侧边栏调整 */
     section[data-testid="stSidebar"] {{
-        background-color: rgba(0, 0, 0, 0.3);
+        background-color: rgba(0, 0, 0, 0.1);
         backdrop-filter: blur(15px);
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        border-right: 1px solid rgba(128, 128, 128, 0.2);
+    }}
+    
+    /* 侧边栏文字颜色适配 */
+    section[data-testid="stSidebar"] * {{
+        color: {text_color} !important;
+    }}
+    /* 输入框 label 颜色适配 */
+    .stTextInput label, .stSelectbox label, .stRadio label, .stMultiSelect label {{
+        color: {text_color} !important;
     }}
 
     /* 关键指标数字美化 */
     div[data-testid="stMetricValue"] {{
-        background: -webkit-linear-gradient(#fff, #00d2ff); /* 稍微亮一点的渐变 */
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: {metric_color} !important;
         font-weight: 900;
         font-size: 26px !important;
+    }}
+    
+    /* 指标 Label */
+    div[data-testid="stMetricLabel"] {{
+        color: {text_color} !important;
+        opacity: 0.8;
     }}
 
     /* 按钮样式 */
     .stButton>button {{
-        border-radius: 20px;
-        background: linear-gradient(to right, #00c6ff, #0072ff);
+        border-radius: 4px; /* 更方正一点，显专业 */
+        background: #0056b3;
         color: white;
         border: none;
         font-weight: bold;
@@ -92,15 +123,15 @@ st.markdown(f"""
         left: 0;
         bottom: 0;
         width: 100%;
-        background-color: rgba(15, 32, 39, 0.95);
-        color: #a0a0a0;
+        background-color: {card_bg};
+        color: {text_color};
         text-align: center;
         padding: 10px;
         font-size: 12px;
         z-index: 9999;
-        border-top: 1px solid #333;
+        border-top: 1px solid rgba(128, 128, 128, 0.2);
     }}
-    .footer a {{ color: #00d2ff; text-decoration: none; }}
+    .footer a {{ color: {metric_color}; text-decoration: none; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -118,17 +149,17 @@ if "单股" in mode and final_ticker:
     stock = get_stock_safe(final_ticker)
     
     # 获取数据
-    with st.spinner(f"正在连接交易所拉取 {final_ticker} 数据..."):
+    with st.spinner(f"正在获取 {final_ticker} 数据..."):
         try:
             hist = stock.history(period=period)
             info = stock.info
             if hist.empty: raise ValueError("Empty Data")
         except:
-            st.error(f"⚠️ 无法获取数据，请检查代码 {final_ticker} 是否正确。")
+            st.error(f"无法获取数据，请检查代码 {final_ticker} 是否正确。")
             st.stop()
 
     # --- 顶部：核心行情 ---
-    st.markdown(f"## {info.get('shortName', final_ticker)} <span style='font-size:0.6em;color:#ccc'>({final_ticker})</span>", unsafe_allow_html=True)
+    st.markdown(f"## {info.get('shortName', final_ticker)} <span style='font-size:0.6em;opacity:0.6'>({final_ticker})</span>", unsafe_allow_html=True)
     
     curr = info.get('currentPrice') or hist['Close'].iloc[-1]
     prev = info.get('previousClose') or hist['Close'].iloc[-2]
@@ -147,11 +178,11 @@ if "单股" in mode and final_ticker:
     col_chart, col_gauge = st.columns([3, 1])
     
     with col_chart:
-        st.subheader("📈 资金去哪了 (Price Action)")
+        st.subheader("资金去哪了 (Price Action)")
         
         # 图表控制台
         indicators = st.multiselect(
-            "🛠️ 叠加技术指标",
+            "叠加技术指标",
             ["MA 20 (月线)", "MA 50 (季线)", "布林带 (Bollinger)", "唐奇安通道 (Donchian)", "EMA 20 (趋势)"],
             default=["MA 20 (月线)", "唐奇安通道 (Donchian)"]
         )
@@ -181,39 +212,51 @@ if "单股" in mode and final_ticker:
             upper = sma + (std * 2)
             lower = sma - (std * 2)
             fig.add_trace(go.Scatter(x=hist.index, y=upper, mode='lines', line=dict(width=0), name='布林上轨', showlegend=False, hoverinfo='skip'))
-            fig.add_trace(go.Scatter(x=hist.index, y=lower, mode='lines', line=dict(width=0), name='布林下轨', fill='tonexty', fillcolor='rgba(255, 255, 255, 0.05)', showlegend=False, hoverinfo='skip'))
+            fig.add_trace(go.Scatter(x=hist.index, y=lower, mode='lines', line=dict(width=0), name='布林下轨', fill='tonexty', fillcolor='rgba(128, 128, 128, 0.2)', showlegend=False, hoverinfo='skip'))
 
         if "唐奇安通道 (Donchian)" in indicators:
             high_20 = hist['High'].rolling(window=20).max()
             low_20 = hist['Low'].rolling(window=20).min()
             fig.add_trace(go.Scatter(x=hist.index, y=high_20, mode='lines', name='唐奇安上轨', line=dict(color='rgba(0, 255, 0, 0.5)', width=1, dash='dash')))
             fig.add_trace(go.Scatter(x=hist.index, y=low_20, mode='lines', name='唐奇安下轨', line=dict(color='rgba(255, 0, 0, 0.5)', width=1, dash='dash')))
+        
+        # 图表背景自适应
+        layout_bg = "rgba(0,0,0,0)"
+        grid_color = "rgba(128,128,128,0.1)"
+        if "淡蓝" in theme or "高盛" in theme:
+            chart_template = "plotly_white"
+        else:
+            chart_template = "plotly_dark"
 
-        fig.update_layout(height=500, template="plotly_dark", margin=dict(l=0,r=0,t=0,b=0), xaxis_rangeslider_visible=False, hovermode="x unified")
+        fig.update_layout(height=500, template=chart_template, paper_bgcolor=layout_bg, plot_bgcolor=layout_bg, margin=dict(l=0,r=0,t=0,b=0), xaxis_rangeslider_visible=False, hovermode="x unified")
+        fig.update_xaxes(showgrid=True, gridcolor=grid_color)
+        fig.update_yaxes(showgrid=True, gridcolor=grid_color)
         st.plotly_chart(fig, use_container_width=True)
 
     with col_gauge:
-        st.subheader("🧭 华尔街态度")
+        st.subheader("华尔街态度")
         rec_mean = info.get('targetMeanPrice')
         current_p = curr
         if rec_mean:
             upside = ((rec_mean - current_p) / current_p) * 100
-            gauge_color = "#00ff00" if upside > 0 else "#ff0000"
+            gauge_color = "#00c853" if upside > 0 else "#d50000"
+            
             fig_g = go.Figure(go.Indicator(
                 mode = "gauge+number+delta",
                 value = upside,
-                title = {'text': "目标空间 (%)"},
+                title = {'text': "目标空间 (%)", 'font': {'color': text_color, 'size': 14}},
                 delta = {'reference': 0},
+                number = {'font': {'color': text_color}},
                 gauge = {'axis': {'range': [-30, 80]}, 'bar': {'color': gauge_color}, 'bgcolor': "rgba(0,0,0,0)"}
             ))
-            fig_g.update_layout(height=350, margin=dict(l=10,r=10,t=0,b=0), template="plotly_dark")
+            fig_g.update_layout(height=350, margin=dict(l=10,r=10,t=0,b=0), paper_bgcolor="rgba(0,0,0,0)")
             st.plotly_chart(fig_g, use_container_width=True)
             st.caption(f"分析师目标价: {rec_mean}")
         else:
             st.info("暂无预测数据")
 
     # --- 实用功能：睡后收入计算器 ---
-    with st.expander("🤑 睡后收入计算器 (点击展开)", expanded=False):
+    with st.expander("睡后收入计算器 (点击展开)", expanded=False):
         c_calc1, c_calc2, c_calc3 = st.columns(3)
         shares_to_buy = c_calc1.number_input("假如我买入 (股)", min_value=100, value=1000, step=100)
         div_rate = info.get('dividendRate', 0)
@@ -221,12 +264,12 @@ if "单股" in mode and final_ticker:
             annual_income = shares_to_buy * div_rate
             c_calc2.metric("每股分红", f"{div_rate}")
             c_calc3.metric("预计年收入", f"{annual_income:,.2f}")
-            st.success(f"💰 如果持有 {shares_to_buy} 股，预计每年躺赚 **{annual_income:,.2f}** (Pre-Tax)！")
+            st.success(f"如果持有 {shares_to_buy} 股，预计每年躺赚 {annual_income:,.2f} (Pre-Tax)！")
         else:
             st.warning("该公司暂无分红记录 (铁公鸡或成长股)。")
 
     # --- 底部 Tabs ---
-    tab1, tab2, tab3 = st.tabs(["💰 深度财报", "📰 智能舆情", "🏦 股东数据"])
+    tab1, tab2, tab3 = st.tabs(["深度财报", "智能舆情", "股东数据"])
     
     with tab1:
         st.markdown("### 利润表 (Income Statement)")
@@ -250,9 +293,9 @@ if "单股" in mode and final_ticker:
 
         col_btn, col_list = st.columns([1, 3])
         with col_btn:
-            st.info("🔗 外部信源直达")
-            st.link_button("🔍 Google 财经", f"https://www.google.com/search?q={q_name}&tbm=nws")
-            st.link_button("🔍 百度资讯", f"https://www.baidu.com/s?wd={q_name} 最新消息")
+            st.info("外部信源直达")
+            st.link_button("Google 财经", f"https://www.google.com/search?q={q_name}&tbm=nws")
+            st.link_button("百度资讯", f"https://www.baidu.com/s?wd={q_name} 最新消息")
         
         with col_list:
             news = stock.news
@@ -285,7 +328,7 @@ else:
         t4 = st.text_input("选手 4", "").upper()
 
     if t1:
-        st.title("⚔️ 巅峰对决")
+        st.title("巅峰对决")
         tickers = [t.strip() for t in [t1,t2,t3,t4] if t.strip()]
         data = {}
         valid = []
@@ -304,7 +347,10 @@ else:
             fig = go.Figure()
             for v in valid:
                 fig.add_trace(go.Scatter(x=data[v].index, y=data[v], mode='lines', name=v))
-            fig.update_layout(template="plotly_dark", title="近一年累计收益率 (%)", hovermode="x unified")
+            
+            # 图表主题适配
+            chart_theme = "plotly_white" if "淡蓝" in theme or "高盛" in theme else "plotly_dark"
+            fig.update_layout(template=chart_theme, title="近一年累计收益率 (%)", hovermode="x unified")
             st.plotly_chart(fig, use_container_width=True)
 
 # --- 5. 固定页脚 Reference ---
