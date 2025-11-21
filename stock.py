@@ -5,11 +5,11 @@ import pandas as pd
 from datetime import datetime
 
 # --- 1. 全局配置 ---
-st.set_page_config(page_title="谁懂了我的钱 | 投研终端", layout="wide")
+st.set_page_config(page_title="谁动了我的钱 | 投研终端", layout="wide")
 
 # --- 2. 侧边栏配置 ---
 with st.sidebar:
-    st.header("谁懂了我的钱")
+    st.header("谁动了我的钱")
     st.caption("Professional Investment Terminal")
     st.markdown("---")
     
@@ -366,3 +366,4 @@ st.markdown("""
     <p>© 2025 Who Understood My Money | Designed for Pro Investors</p>
 </div>
 """, unsafe_allow_html=True)
+
