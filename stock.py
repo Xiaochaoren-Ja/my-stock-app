@@ -5,7 +5,6 @@ import pandas as pd
 from datetime import datetime
 
 # --- 1. 全局配置 ---
-# page_icon 设为 None 或简单的 layout
 st.set_page_config(page_title="谁懂了我的钱 | 投研终端", layout="wide")
 
 # --- 2. 侧边栏配置 (含主题切换) ---
@@ -14,40 +13,54 @@ with st.sidebar:
     st.caption("Professional Investment Terminal")
     st.markdown("---")
     
-    # === 背景主题切换 (新增淡蓝色) ===
+    # === 背景主题切换 (修复了浅色看不清的问题) ===
     theme = st.selectbox("界面风格 / Theme", 
                          ["深空极光 (默认)", "商务淡蓝 (Light Blue)", "高盛白 (Clean White)", "搞钱护眼绿", "赛博朋克紫", "极简纯黑"])
     
-    # 定义不同主题的 CSS (背景色 + 字体颜色)
-    # 默认深色系
+    # --- 主题色板逻辑 ---
+    # 默认深色系配置
     bg_css = "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)"
-    text_color = "#ffffff"
+    text_color = "#ffffff"       # 深色背景用白字
+    sub_text_color = "#e0e0e0"   # 次级文字
     card_bg = "rgba(255, 255, 255, 0.05)"
-    metric_color = "#00c6ff" # 默认亮蓝
+    metric_color = "#00c6ff"     # 亮蓝 (深色背景显眼)
+    sidebar_bg = "rgba(0, 0, 0, 0.3)"
+    chart_theme = "plotly_dark"
+    input_bg = "rgba(255,255,255,0.1)"
 
+    # 针对浅色主题的特殊配置
     if "淡蓝" in theme:
-        bg_css = "linear-gradient(to bottom, #e0eafc, #cfdef3)" # 淡蓝渐变
-        text_color = "#1a1a1a" # 深色字体
-        card_bg = "rgba(255, 255, 255, 0.6)" # 浅色卡片
-        metric_color = "#0056b3" # 深蓝指标
+        bg_css = "linear-gradient(to bottom, #e0eafc, #cfdef3)" 
+        text_color = "#000000"   # 浅色背景强制黑字
+        sub_text_color = "#333333"
+        card_bg = "rgba(255, 255, 255, 0.7)" # 更不透明的白底
+        metric_color = "#003366" # 深海军蓝 (浅色背景显眼)
+        sidebar_bg = "rgba(255, 255, 255, 0.5)" # 浅色侧边栏
+        chart_theme = "plotly_white"
+        input_bg = "rgba(255,255,255,0.8)"
+
     elif "高盛" in theme:
-        bg_css = "#f0f2f6" # 纯净灰白
-        text_color = "#000000"
-        card_bg = "#ffffff"
-        metric_color = "#333333"
+        bg_css = "#ffffff"       # 纯白
+        text_color = "#000000"   # 纯黑字
+        sub_text_color = "#333333"
+        card_bg = "#f8f9fa"      # 浅灰卡片
+        metric_color = "#137333" # 深绿 (类似金融终端涨跌色)
+        sidebar_bg = "#f0f2f6"   # 浅灰侧边栏
+        chart_theme = "plotly_white"
+        input_bg = "#ffffff"
+
     elif "搞钱" in theme:
         bg_css = "linear-gradient(135deg, #134E5E 0%, #71B280 100%)"
-        text_color = "#ffffff"
+    
     elif "赛博" in theme:
         bg_css = "linear-gradient(to right, #240b36, #c31432)"
-        text_color = "#ffffff"
+        
     elif "极简" in theme:
         bg_css = "#0e1117"
-        text_color = "#ffffff"
 
     st.markdown("---")
     
-    # 模式选择 (去图标)
+    # 模式选择
     mode = st.radio("功能模式", ["单股深度分析", "多股对比 (VS)"])
     
     st.markdown("---")
@@ -69,50 +82,51 @@ with st.sidebar:
             
         period = st.select_slider("时间跨度", options=["1mo", "3mo", "6mo", "1y", "3y", "5y"], value="1y")
 
-# --- 3. CSS 注入 (根据选择的主题自动适配) ---
+# --- 3. CSS 注入 (强制覆盖颜色) ---
 st.markdown(f"""
 <style>
-    /* 动态应用背景 */
+    /* 全局背景和字体颜色 */
     .stApp {{
         background: {bg_css};
         color: {text_color};
         padding-bottom: 80px; 
     }}
     
-    /* 侧边栏调整 */
+    /* 强制修改所有文本颜色 (解决浅色看不清的问题) */
+    .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, p, li {{
+        color: {text_color} !important;
+    }}
+    
+    /* 输入框 Label 颜色 */
+    .stTextInput label, .stSelectbox label, .stRadio label, .stMultiSelect label, .stSlider label {{
+        color: {text_color} !important;
+        font-weight: bold;
+    }}
+    
+    /* 侧边栏样式 */
     section[data-testid="stSidebar"] {{
-        background-color: rgba(0, 0, 0, 0.1);
+        background-color: {sidebar_bg};
         backdrop-filter: blur(15px);
         border-right: 1px solid rgba(128, 128, 128, 0.2);
     }}
     
-    /* 侧边栏文字颜色适配 */
-    section[data-testid="stSidebar"] * {{
-        color: {text_color} !important;
-    }}
-    /* 输入框 label 颜色适配 */
-    .stTextInput label, .stSelectbox label, .stRadio label, .stMultiSelect label {{
-        color: {text_color} !important;
-    }}
-
-    /* 关键指标数字美化 */
+    /* 关键指标数字颜色 (动态变化) */
     div[data-testid="stMetricValue"] {{
         color: {metric_color} !important;
         font-weight: 900;
         font-size: 26px !important;
     }}
     
-    /* 指标 Label */
+    /* 指标 Label 颜色 */
     div[data-testid="stMetricLabel"] {{
-        color: {text_color} !important;
-        opacity: 0.8;
+        color: {sub_text_color} !important;
     }}
 
     /* 按钮样式 */
     .stButton>button {{
-        border-radius: 4px; /* 更方正一点，显专业 */
-        background: #0056b3;
-        color: white;
+        border-radius: 4px;
+        background: {metric_color}; /* 按钮颜色跟随指标颜色 */
+        color: white !important; /* 按钮文字永远白色 */
         border: none;
         font-weight: bold;
     }}
@@ -124,7 +138,7 @@ st.markdown(f"""
         bottom: 0;
         width: 100%;
         background-color: {card_bg};
-        color: {text_color};
+        color: {sub_text_color};
         text-align: center;
         padding: 10px;
         font-size: 12px;
@@ -223,12 +237,8 @@ if "单股" in mode and final_ticker:
         # 图表背景自适应
         layout_bg = "rgba(0,0,0,0)"
         grid_color = "rgba(128,128,128,0.1)"
-        if "淡蓝" in theme or "高盛" in theme:
-            chart_template = "plotly_white"
-        else:
-            chart_template = "plotly_dark"
-
-        fig.update_layout(height=500, template=chart_template, paper_bgcolor=layout_bg, plot_bgcolor=layout_bg, margin=dict(l=0,r=0,t=0,b=0), xaxis_rangeslider_visible=False, hovermode="x unified")
+        
+        fig.update_layout(height=500, template=chart_theme, paper_bgcolor=layout_bg, plot_bgcolor=layout_bg, margin=dict(l=0,r=0,t=0,b=0), xaxis_rangeslider_visible=False, hovermode="x unified")
         fig.update_xaxes(showgrid=True, gridcolor=grid_color)
         fig.update_yaxes(showgrid=True, gridcolor=grid_color)
         st.plotly_chart(fig, use_container_width=True)
@@ -241,12 +251,15 @@ if "单股" in mode and final_ticker:
             upside = ((rec_mean - current_p) / current_p) * 100
             gauge_color = "#00c853" if upside > 0 else "#d50000"
             
+            # Gauge 颜色适配
+            gauge_font_color = text_color
+            
             fig_g = go.Figure(go.Indicator(
                 mode = "gauge+number+delta",
                 value = upside,
-                title = {'text': "目标空间 (%)", 'font': {'color': text_color, 'size': 14}},
+                title = {'text': "目标空间 (%)", 'font': {'color': gauge_font_color, 'size': 14}},
                 delta = {'reference': 0},
-                number = {'font': {'color': text_color}},
+                number = {'font': {'color': gauge_font_color}},
                 gauge = {'axis': {'range': [-30, 80]}, 'bar': {'color': gauge_color}, 'bgcolor': "rgba(0,0,0,0)"}
             ))
             fig_g.update_layout(height=350, margin=dict(l=10,r=10,t=0,b=0), paper_bgcolor="rgba(0,0,0,0)")
@@ -349,7 +362,6 @@ else:
                 fig.add_trace(go.Scatter(x=data[v].index, y=data[v], mode='lines', name=v))
             
             # 图表主题适配
-            chart_theme = "plotly_white" if "淡蓝" in theme or "高盛" in theme else "plotly_dark"
             fig.update_layout(template=chart_theme, title="近一年累计收益率 (%)", hovermode="x unified")
             st.plotly_chart(fig, use_container_width=True)
 
